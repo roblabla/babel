@@ -225,7 +225,6 @@ pp.parseForStatement = function (node) {
 
   node.async = false;
   if (this.match(tt.name) && this.state.value === 'await' && this.state.inAsync) {
-    console.log(this.state);
     node.async = true;
     this.next();
   }
