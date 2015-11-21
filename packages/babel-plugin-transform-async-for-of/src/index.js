@@ -1,22 +1,11 @@
 export default function ({ messages, template, types: t }) {
-  let buildForOfArray = template(`
-    for (var KEY = 0; KEY < ARR.length; KEY++) BODY;
-  `);
-
   let buildForOfLoose = template(`
-    for (var LOOP_OBJECT = OBJECT,
-             IS_ARRAY = Array.isArray(LOOP_OBJECT),
-             INDEX = 0,
-             LOOP_OBJECT = IS_ARRAY ? LOOP_OBJECT : LOOP_OBJECT[Symbol.iterator]();;) {
+    for (var LOOP_OBJECT = OBJECT[Symbol.asyncIterator](),
+             INDEX = 0;;) {
       var ID;
-      if (IS_ARRAY) {
-        if (INDEX >= LOOP_OBJECT.length) break;
-        ID = LOOP_OBJECT[INDEX++];
-      } else {
-        INDEX = LOOP_OBJECT.next();
-        if (INDEX.done) break;
-        ID = INDEX.value;
-      }
+      INDEX = await LOOP_OBJECT.next();
+      if (INDEX.done) break;
+      ID = INDEX.value;
     }
   `);
 
@@ -25,7 +14,7 @@ export default function ({ messages, template, types: t }) {
     var ITERATOR_HAD_ERROR_KEY = false;
     var ITERATOR_ERROR_KEY = undefined;
     try {
-      for (var ITERATOR_KEY = OBJECT[Symbol.iterator](), STEP_KEY; !(ITERATOR_COMPLETION = (STEP_KEY = ITERATOR_KEY.next()).done); ITERATOR_COMPLETION = true) {
+      for (var ITERATOR_KEY = OBJECT[Symbol.iterator](), STEP_KEY; !(ITERATOR_COMPLETION = (STEP_KEY = await ITERATOR_KEY.next()).done); ITERATOR_COMPLETION = true) {
       }
     } catch (err) {
       ITERATOR_HAD_ERROR_KEY = true;
@@ -43,60 +32,13 @@ export default function ({ messages, template, types: t }) {
     }
   `);
 
-  function _ForOfStatementArray(path) {
-    let { node, scope } = path;
-    let nodes = [];
-    let right = node.right;
-
-    if (!t.isIdentifier(right) || !scope.hasBinding(right.name)) {
-      let uid = scope.generateUidIdentifier("arr");
-      nodes.push(t.variableDeclaration("var", [
-        t.variableDeclarator(uid, right)
-      ]));
-      right = uid;
-    }
-
-    let iterationKey = scope.generateUidIdentifier("i");
-
-    let loop = buildForOfArray({
-      BODY: node.body,
-      KEY:  iterationKey,
-      ARR:  right
-    });
-
-    t.inherits(loop, node);
-    t.ensureBlock(loop);
-
-    let iterationValue = t.memberExpression(right, iterationKey, true);
-
-    let left = node.left;
-    if (t.isVariableDeclaration(left)) {
-      left.declarations[0].init = iterationValue;
-      loop.body.body.unshift(left);
-    } else {
-      loop.body.body.unshift(t.expressionStatement(t.assignmentExpression("=", left, iterationValue)));
-    }
-
-    if (path.parentPath.isLabeledStatement()) {
-      loop = t.labeledStatement(path.parentPath.node.label, loop);
-    }
-
-    nodes.push(loop);
-
-    return nodes;
-  }
-
-
   return {
     visitor: {
       ForOfStatement(path, state) {
-        if (path.node.async) return;
-        if (path.get("right").isArrayExpression()) {
-          return path.replaceWithMultiple(_ForOfStatementArray.call(this, path, state));
-        }
+        if (!path.node.async) return;
 
-        let callback = spec;
-        if (state.opts.loose) callback = loose;
+        //let callback = spec;
+        /*if (state.opts.loose) */callback = loose;
 
         let { node } = path;
         let build  = callback(path, state);
@@ -148,11 +90,9 @@ export default function ({ messages, template, types: t }) {
     }
 
     let iteratorKey = scope.generateUidIdentifier("iterator");
-    let isArrayKey  = scope.generateUidIdentifier("isArray");
 
     let loop = buildForOfLoose({
       LOOP_OBJECT:  iteratorKey,
-      IS_ARRAY:     isArrayKey,
       OBJECT:       node.right,
       INDEX:        scope.generateUidIdentifier("i"),
       ID:           id

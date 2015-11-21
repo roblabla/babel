@@ -1,0 +1,17 @@
+{
+  "name": "babel-plugin-transform-async-for-of",
+  "version": "6.1.19",
+  "description": "Compile es7 async for...of to ES7 without async for...of",
+  "repository": "https://github.com/babel/babel/tree/master/packages/babel-plugin-transform-async-for-of",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "keywords": [
+    "babel-plugin"
+  ],
+  "dependencies": {
+    "babel-runtime": "^5.0.0"
+  },
+  "devDependencies": {
+    "babel-helper-plugin-test-runner": "^6.1.18"
+  }
+}

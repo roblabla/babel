@@ -222,6 +222,13 @@ pp.parseDoStatement = function (node) {
 pp.parseForStatement = function (node) {
   this.next();
   this.state.labels.push(loopLabel);
+
+  node.async = false;
+  if (this.match(tt.name) && this.state.value === 'await' && this.state.inAsync) {
+    console.log(this.state);
+    node.async = true;
+    this.next();
+  }
   this.expect(tt.parenL);
 
   if (this.match(tt.semi)) {
@@ -234,25 +241,30 @@ pp.parseForStatement = function (node) {
     this.parseVar(init, true, varKind);
     this.finishNode(init, "VariableDeclaration");
 
-    if (this.match(tt._in) || this.isContextual("of")) {
+    if ((!node.async && this.match(tt._in)) || this.isContextual("of")) {
       if (init.declarations.length === 1 && !init.declarations[0].init) {
         return this.parseForIn(node, init);
       }
     }
-
-    return this.parseFor(node, init);
+    if (!node.async)
+      return this.parseFor(node, init);
+    else
+      this.unexpected();
   }
 
   let refShorthandDefaultPos = {start: 0};
   let init = this.parseExpression(true, refShorthandDefaultPos);
-  if (this.match(tt._in) || this.isContextual("of")) {
+  if ((!node.async && this.match(tt._in)) || this.isContextual("of")) {
     this.toAssignable(init);
     this.checkLVal(init);
     return this.parseForIn(node, init);
   } else if (refShorthandDefaultPos.start) {
     this.unexpected(refShorthandDefaultPos.start);
   }
-  return this.parseFor(node, init);
+  if (!node.async)
+    return this.parseFor(node, init);
+  else
+    return this.unexpected();
 };
 
 pp.parseFunctionStatement = function (node) {
